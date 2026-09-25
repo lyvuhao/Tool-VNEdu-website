@@ -20,6 +20,7 @@ from .aliases import AliasMixin
 from .apply_scores import ApplyScoresMixin
 from .context import ContextMixin
 from .editing import EditingMixin
+from .excel_import import ExcelImportMixin
 from .export import ExportMixin
 from .layout import LayoutMixin
 from .progress import ProgressMixin
@@ -49,6 +50,7 @@ class VnEduStandaloneApp(
     VoiceRecognitionMixin,
     VoiceMatchingMixin,
     ExportMixin,
+    ExcelImportMixin,
 ):
     def __init__(self, root: tk.Tk) -> None:
         self.root = root

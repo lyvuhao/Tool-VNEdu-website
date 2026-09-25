@@ -210,9 +210,12 @@ class LayoutMixin:
             state="readonly",
             width=24,
         )
-        self.target_score_combo.grid(row=0, column=1, columnspan=3, padx=(0, 0), pady=4, sticky="ew")
+        self.target_score_combo.grid(row=0, column=1, columnspan=2, padx=(0, 6), pady=4, sticky="ew")
         self.target_score_combo.bind("<<ComboboxSelected>>", self._on_target_score_selected, add="+")
         self._register_busy(self.target_score_combo, "readonly")
+        import_button = ttk.Button(controls, text="📄 NHẬP TỪ EXCEL", command=self.on_import_scores_from_file)
+        import_button.grid(row=0, column=3, padx=(0, 0), pady=4, sticky="ew")
+        self._register_busy(import_button, "normal")
         self.btn_ptt_toggle = tk.Button(
             controls,
             text="🎤 BỘ ĐÀM: TẮT",

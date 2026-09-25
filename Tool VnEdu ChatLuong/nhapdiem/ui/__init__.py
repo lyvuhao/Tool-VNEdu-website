@@ -8,6 +8,7 @@ Mục lục module:
     apply_scores       Ghi điểm chờ lên VNEDU, xoá/làm tròn điểm chờ.
     context            Combobox khối/lớp/môn/cột điểm và đồng bộ context.
     editing            Sửa điểm trực tiếp trên bảng, undo.
+    excel_import       Nhập điểm từ file Excel/CSV: chọn file, xem trước kết quả khớp, đưa vào hàng "Chờ ghi".
     export             Tóm tắt và xuất dữ liệu.
     layout             Dựng giao diện, tooltip và bố cục responsive.
     progress           Log, tiến độ, đồng hồ mic và chạy tác vụ nền.

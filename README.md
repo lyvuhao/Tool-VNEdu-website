@@ -21,13 +21,59 @@ cd "Tool VnEdu ChatLuong"
 python nhapdiem_pro.py            # như trước
 python nhapdiem_pro.py --self-test
 python vnedu_control_panel2.py --self-test
+python -m unittest discover -s tests    # test logic (không cần trình duyệt)
 ```
 
-Thư viện cần có: `playwright`. Tuỳ chọn: `openpyxl`, `python-docx` (KHDH);
+Thư viện cần có: `playwright`. Tuỳ chọn: `openpyxl` (KHDH, nhập điểm từ file Excel), `python-docx` (KHDH);
 `numpy`, `sounddevice`, `SpeechRecognition`, `rapidfuzz`, `requests`, `soundfile` (nhập điểm giọng nói).
 
 File cấu hình/dữ liệu (`*_config.json`, cache, alias…) **vẫn nằm cạnh launcher** như trước, nên cấu hình
 cũ tiếp tục dùng được. Mỗi package có `paths.TOOL_DIR` trỏ về thư mục này.
+
+## Tính năng mới
+
+### Nhập điểm từ file Excel/CSV (tool Nhập điểm)
+
+1. Đăng nhập, chọn lớp/môn, chọn **Cột điểm đích** để tool quét danh sách học sinh như bình thường.
+2. Bấm **📄 NHẬP TỪ EXCEL**, chọn file `.xlsx`/`.xlsm`/`.csv`.
+3. Hộp thoại xem trước tự đoán sheet, cột họ tên (kể cả họ/tên tách hai cột), cột mã HS và cột điểm.
+   Cột nào đoán sai thì chọn lại, bảng khớp cập nhật ngay.
+4. Kết quả khớp mỗi dòng:
+   - **Xanh**: khớp chắc chắn (theo mã HS, theo họ tên, hoặc theo họ tên bỏ dấu); được chọn sẵn.
+   - **Vàng**: cần kiểm tra (trùng tên trong lớp, hoặc tên gần đúng do sai chính tả); mặc định **không** chọn.
+   - **Đỏ / xám**: không khớp, điểm lỗi, ô trống, dòng trùng, hoặc trùng điểm đang có; bỏ qua.
+5. Bấm **Đưa N điểm vào hàng chờ**. Điểm vào cột "Điểm chờ" (hoàn tác được bằng Ctrl+Z), sau đó bấm
+   **GHI ĐIỂM LÊN WEB** như với điểm đọc bằng giọng nói. Phần ghi lên VNEDU không thay đổi.
+
+File `.xls` đời cũ chưa hỗ trợ: mở bằng Excel rồi lưu lại dạng `.xlsx`. Đọc `.xlsx` cần thư viện `openpyxl`;
+file CSV thì không cần.
+
+### Nhiều câu nhận xét cho mỗi mức điểm (tool Ghi nhận xét)
+
+- Trong ô "Mẫu nhận xét", ngăn các câu bằng dấu `|`, hoặc bấm nút **✎** để soạn mỗi câu một dòng.
+- Tool chia đều các câu cho học sinh cùng mức điểm, và các bạn liền nhau nhận câu khác nhau.
+- Học sinh đã có đúng một câu trong danh sách thì giữ nguyên, nên chạy lại không làm xáo trộn.
+- Rule chỉ có một câu chạy y hệt trước đây. Bộ rule mặc định ("Nhận xét mặc định") nay có sẵn 2–3 câu
+  cho mỗi mức; câu đầu tiên vẫn là câu cũ.
+
+### Ghi log ra file (4 tool)
+
+- Mỗi tool ghi log vào `Tool VnEdu ChatLuong/logs/<tên tool>.log`: `nhapdiem`, `nhanxet`, `auto_khbd`,
+  `auto_sdb`. Log xoay vòng, tối đa 2 MB × 5 file.
+- Log gồm các dòng hiện trên giao diện, cộng với **mọi lỗi chưa bắt kèm traceback đầy đủ** (luồng chính,
+  thread nền, callback Tkinter). Trước đây các lỗi này mất hẳn khi chạy bằng `pythonw` hoặc `.exe`.
+- Dashboard có mục **Công cụ → Mở thư mục log của tool**. Khi báo lỗi, gửi kèm file log là đủ.
+- Log có thể chứa tên học sinh (giống nội dung trên giao diện). Đặt biến môi trường
+  `VNEDU_DISABLE_FILE_LOG=1` để tắt ghi log.
+
+### Control panel chạy code mới
+
+- "Nhập điểm" → `nhapdiem_pro.py`, "Sổ đầu bài" → `auto_SĐB.py`. Trước đây dashboard trỏ tới
+  `nhapdiem21.py` / `auto_danang8.py` không có trong repo, nên luôn chạy bản nhúng **cũ hơn**.
+- Launcher thiếu thư mục package bên cạnh thì tự dùng bản nhúng dự phòng (bản đơn file). Khi cập nhật bản
+  nhúng, launcher không bị nhúng nhầm thay cho bản đơn file.
+- Kiểm tra sức khoẻ tool và `--self-test` compile cả package. Bản `.exe` tự chép các package sang thư mục
+  chạy tool.
 
 ## Cấu trúc
 
@@ -54,6 +100,8 @@ Tool VnEdu ChatLuong/
 ├── auto_sdb/                Sổ đầu bài
 │   ├── cdp/                 ChromeBridge (connection, navigation, dropdowns, table, form_fill, form_save, ...)
 │   └── app/                 AutoDaNangApp (schedule_*, class_stats_*, delete_dialog, chrome, window, ...)
+├── vnedu_common/            Dùng chung: logging_setup (log ra file, bắt lỗi chưa xử lý)
+├── tests/                   Test unittest cho logic nhận xét nhiều câu và nhập điểm từ file
 └── control_panel/           Dashboard
     ├── embedded_payloads.py Mã tool dự phòng (gzip+base64) — được ghi đè tự động, không sửa tay
     ├── storage.py, custom_tools.py, embedded.py, process.py, login.py, ...
@@ -113,5 +161,5 @@ năng thì mở đúng file mixin: ví dụ lỗi điền form Sổ đầu bài 
   - 3 `ttk.Label` được tạo nhưng không đặt lên màn hình (`nhapdiem/ui/layout.py`);
   - `detail_text` được tính nhưng không hiển thị (`control_panel/ui/tool_dialogs.py`);
   - `expected_score_pairs` (`nhapdiem/scorebook_core/automation/payload_write.py`).
-- `control_panel/tool_registry.py` vẫn trỏ tới tên script cũ (`nhapdiem21.py`, `auto_danang8.py`,
-  `locdiem.py`); nếu không có file đó, control panel dùng bản nhúng dự phòng như trước.
+- "Lọc học lực" (`locdiem.py`) không có trong repo nên dashboard vẫn chạy bản nhúng của nó.
+- Tool KHDH (`auto_khbd_pro.py`) chưa có thẻ trên dashboard (có thể thêm dạng "tool tuỳ chỉnh").
