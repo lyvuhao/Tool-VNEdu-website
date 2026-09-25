@@ -35,7 +35,7 @@ from ..embedded import (
     refresh_embedded_payloads_in_control_panel,
     sha256_hex,
 )
-from ..tool_registry import TOOL_FILES
+from ..tool_registry import is_launcher_source, TOOL_FILES
 
 
 class ToolDialogsMixin:
@@ -586,6 +586,11 @@ class ToolDialogsMixin:
 
         source_bytes = source_path.read_bytes()
         compile(source_bytes, str(source_path), "exec")
+        if is_launcher_source(source_bytes):
+            raise ValueError(
+                "File đã chọn chỉ là launcher (cần thư mục package nằm cạnh). "
+                "Hãy chép cả thư mục tool mới vào thư mục tool thay vì đổi bằng file này."
+            )
         source_hash = sha256_hex(source_bytes)
         expected_payload = encode_embedded_tool_source(source_bytes)
 

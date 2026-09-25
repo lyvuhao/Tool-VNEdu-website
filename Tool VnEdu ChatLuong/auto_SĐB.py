@@ -6,6 +6,8 @@ Mã nguồn nằm trong package `auto_sdb/`:
 Chạy:  python auto_SĐB.py      hoặc   python -m auto_sdb
 """
 
+# VNEDU_TOOL_LAUNCHER: auto_sdb — file này chỉ là launcher, cần package `auto_sdb/` nằm cạnh.
+
 import os
 import sys
 

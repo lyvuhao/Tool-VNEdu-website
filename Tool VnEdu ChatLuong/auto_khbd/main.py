@@ -5,6 +5,9 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
+from vnedu_common.logging_setup import install_tk_exception_logging, setup_tool_logging
+
+from .paths import TOOL_DIR
 from .ui.styles import apply_wizard_styles
 from .ui.theme import CLR_PANEL_BG, fit_geometry_to_work_area, get_tk_work_area
 from .ui.wizard.wizard import KHDHWizard
@@ -15,7 +18,9 @@ from .ui.wizard.wizard import KHDHWizard
 # =====================================================================
 
 def main():
+    setup_tool_logging("auto_khbd", TOOL_DIR)
     root = tk.Tk()
+    install_tk_exception_logging(root)
     root.withdraw()
     root.title("KHDH tự động")
     root.configure(background=CLR_PANEL_BG)

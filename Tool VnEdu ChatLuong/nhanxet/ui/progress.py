@@ -9,6 +9,8 @@ from queue import Empty
 from tkinter import messagebox
 from typing import Callable, Tuple
 
+from vnedu_common.logging_setup import log_ui_message
+
 from ..config import ProgressCallback
 from ..progress import build_progress_caption, clamp_progress_value, password_entry_show_value
 
@@ -24,6 +26,7 @@ class ProgressMixin:
         if len(self._log_history) > 300:
             self._log_history = self._log_history[-300:]
         print(line)
+        log_ui_message("nhanxet.ui", message)
 
     def _apply_password_visibility(self) -> None:
         """Toggles whether the password entry reveals the current VNEDU password."""

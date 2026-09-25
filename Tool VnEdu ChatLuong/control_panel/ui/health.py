@@ -21,7 +21,12 @@ from ..custom_tools import (
     decode_custom_tool_source,
     default_tool_payload,
 )
-from ..embedded import decode_embedded_tool_source, external_tool_script_path
+from ..embedded import (
+    compile_tool_packages,
+    decode_embedded_tool_source,
+    external_tool_script_path,
+    missing_tool_packages,
+)
 from ..embedded_payloads import EMBEDDED_TOOL_PAYLOADS
 from ..tool_registry import TOOL_FILES
 from ..validation import parse_debug_port
@@ -41,7 +46,7 @@ class HealthMixin:
                 if custom_tool_external_path(metadata).exists():
                     return "external"
                 return "embedded" if metadata.get("payload") else "missing"
-            if external_tool_script_path(tool_name).exists():
+            if external_tool_script_path(tool_name).exists() and not missing_tool_packages(tool_name):
                 return "external"
         except Exception:  # noqa: BLE001 - status display must never break the dashboard.
             return "missing"
@@ -73,6 +78,12 @@ class HealthMixin:
             if external_path.exists():
                 if deep:
                     compile(external_path.read_bytes(), str(external_path), "exec")
+                if not custom:
+                    missing = missing_tool_packages(tool_name)
+                    if missing:
+                        raise FileNotFoundError(f"thiếu thư mục package {', '.join(missing)}")
+                    if deep:
+                        compile_tool_packages(tool_name)
                 external_ok = True
         except Exception as error:  # noqa: BLE001 - background health check must keep going.
             errors.append(f"{title}: file ngoài lỗi ({error})")

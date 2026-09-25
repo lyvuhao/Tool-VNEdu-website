@@ -6,6 +6,8 @@ import time
 import tkinter as tk
 from tkinter import messagebox
 
+from vnedu_common.logging_setup import log_ui_message
+
 from ...engine.analyzer.models import TKB_EVENT_DAY_BU, TKB_EVENT_NGHI
 from ...engine.profile.models import SlotEntry, TKBTemplate
 from ...engine.profile.profile import count_profile_holiday_rules, profile_schedule_events
@@ -24,6 +26,7 @@ class StateMixin:
         self.log_text.insert("end", f"[{ts}] ", "dim")
         self.log_text.insert("end", f"{msg}\n", level)
         self.log_text.see("end")
+        log_ui_message("auto_khbd.ui", msg, level)
 
     def _mark_dirty(self, *_):
         if self._loading_profile:

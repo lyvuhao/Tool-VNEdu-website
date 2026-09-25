@@ -4,6 +4,8 @@ import tkinter as tk
 from datetime import datetime
 from tkinter import ttk
 
+from vnedu_common.logging_setup import log_ui_message
+
 from ..config import UI_LOG_BG, UI_LOG_TEXT
 
 
@@ -62,6 +64,7 @@ class ToolbarLogMixin:
         }
         prefix = prefix_map.get(level, "")
         line = f"{timestamp}  {prefix} {message}\n"
+        log_ui_message("auto_sdb.ui", message, level)
 
         self.txt_log.config(state="normal")
         self.txt_log.insert("end", line)

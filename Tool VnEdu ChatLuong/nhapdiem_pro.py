@@ -5,6 +5,8 @@ Chạy:  python nhapdiem_pro.py [--debug] [--config-file PATH] [--self-test]
 hoặc   python -m nhapdiem ...
 """
 
+# VNEDU_TOOL_LAUNCHER: nhapdiem — file này chỉ là launcher, cần package `nhapdiem/` nằm cạnh.
+
 import os
 import sys
 
@@ -15,10 +17,11 @@ if _TOOL_DIR not in sys.path:
     sys.path.insert(0, _TOOL_DIR)
 
 # Giữ tương thích với code cũ kiểu `from nhapdiem_pro import ...`
+from nhapdiem.automation.client import VnEduScoreEntryAutomation  # noqa: E402  (control panel dùng để đăng nhập)
 from nhapdiem.main import main  # noqa: E402
 from nhapdiem.ui.app import VnEduStandaloneApp  # noqa: E402
 
-__all__ = ["VnEduStandaloneApp", "main"]
+__all__ = ["VnEduScoreEntryAutomation", "VnEduStandaloneApp", "main"]
 
 if __name__ == "__main__":
     main()

@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import logging
 import tkinter as tk
 from datetime import datetime
 from pathlib import Path
 from tkinter import ttk
 
+from vnedu_common.logging_setup import install_tk_exception_logging, setup_tool_logging
+
 from . import config as app_config
 from .models import LogTag
+from .paths import TOOL_DIR
 from .selftest import _run_self_tests
 from .ui.app import VnEduStandaloneApp
 from .ui.window import apply_app_styles
@@ -36,7 +40,9 @@ def main() -> None:
 
         app_config.CONFIG_FILE = Path(args.config_file)
 
+    setup_tool_logging("nhapdiem", TOOL_DIR)
     root = tk.Tk()
+    install_tk_exception_logging(root)
     style = ttk.Style(root)
     apply_app_styles(style)
     app = VnEduStandaloneApp(root)
@@ -47,6 +53,7 @@ def main() -> None:
     try:
         root.mainloop()
     except Exception:
+        logging.getLogger("nhapdiem").exception("Ứng dụng dừng do lỗi nghiêm trọng")
         crash_report_path = Path.home() / "Desktop" / "nhapdiem_crash_report.txt"
         try:
             import traceback

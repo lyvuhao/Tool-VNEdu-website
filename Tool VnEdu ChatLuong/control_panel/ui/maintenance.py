@@ -79,6 +79,16 @@ class MaintenanceMixin:
         except Exception as error:  # noqa: BLE001
             self._log_error("Không mở được thư mục tool", error)
 
+    def _open_tool_logs_folder(self) -> None:
+        """Open the folder where each tool writes its rotating log file (logs/<tool>.log)."""
+
+        try:
+            target = tool_workspace_dir() / "logs"
+            target.mkdir(parents=True, exist_ok=True)
+            os.startfile(str(target))  # type: ignore[attr-defined]
+        except Exception as error:  # noqa: BLE001
+            self._log_error("Không mở được thư mục log", error)
+
     def _open_app_data_folder(self) -> None:
         """Open the folder that stores embedded tools, backups, and logs."""
 
@@ -273,6 +283,7 @@ class MaintenanceMixin:
         menu.add_command(label="Khôi phục cấu hình tool", command=self._restore_tool_config)
         menu.add_separator()
         menu.add_command(label="Mở thư mục tool", command=self._open_tool_folder)
+        menu.add_command(label="Mở thư mục log của tool", command=self._open_tool_logs_folder)
         menu.add_command(label="Mở thư mục dữ liệu app", command=self._open_app_data_folder)
         try:
             menu.tk_popup(anchor.winfo_rootx(), anchor.winfo_rooty() + anchor.winfo_height() + 4)

@@ -10,7 +10,12 @@ from .custom_tools import (
     load_custom_tools,
     resolve_custom_tool_script,
 )
-from .embedded import decode_embedded_tool_source, external_tool_script_path, resolve_tool_script
+from .embedded import (
+    compile_tool_packages,
+    decode_embedded_tool_source,
+    external_tool_script_path,
+    resolve_tool_script,
+)
 from .embedded_payloads import EMBEDDED_TOOL_PAYLOADS
 from .process import is_tool_process_mutex_active, ToolProcessGuard
 from .tool_registry import TOOL_FILES
@@ -48,6 +53,7 @@ def run_self_test() -> int:
             external_path = external_tool_script_path(tool_name)
             if external_path.exists():
                 compile(external_path.read_text(encoding="utf-8-sig"), str(external_path), "exec")
+                compile_tool_packages(tool_name)
 
             embedded_script_path = resolve_tool_script(tool_name, allow_external=False)
             if not embedded_script_path.exists():

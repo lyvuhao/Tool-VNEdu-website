@@ -12,7 +12,7 @@ from .custom_tools import decode_payload_bytes, default_tool_payload, tool_works
 from .embedded_payloads import PAYLOAD_SOURCE_FILE
 from .embedded_payloads import EMBEDDED_TOOL_PAYLOADS, PAYLOAD_END_MARKER, PAYLOAD_START
 from .storage import embedded_tool_dir
-from .tool_registry import TOOL_FILES
+from .tool_registry import is_launcher_source, tool_packages, TOOL_FILES
 
 
 def decode_embedded_tool_source(tool_name: str) -> str:
@@ -71,7 +71,10 @@ def source_bytes_for_embedding(tool_name: str) -> bytes:
         raise ValueError(f"Tool không hợp lệ: {tool_name}")
     source_path = tool_workspace_dir() / metadata["script"]
     if source_path.exists():
-        return source_path.read_bytes()
+        source = source_path.read_bytes()
+        # Launcher không chạy được một mình (cần package bên cạnh) -> giữ bản nhúng đơn file hiện có.
+        if not is_launcher_source(source):
+            return source
     return decode_embedded_tool_bytes(tool_name)
 
 
@@ -126,7 +129,9 @@ def resolve_tool_script(tool_name: str, allow_external: bool = True) -> Path:
         raise ValueError(f"Tool không hợp lệ: {tool_name}")
     script_path = external_tool_script_path(tool_name)
     if allow_external and script_path.exists():
-        return script_path
+        # Launcher thiếu package bên cạnh thì không chạy được -> dùng bản nhúng dự phòng.
+        if not missing_tool_packages(tool_name):
+            return script_path
     return extract_embedded_tool_script(tool_name, metadata["script"])
 
 
@@ -134,3 +139,36 @@ def embedded_tool_text(tool_name: str) -> str:
     """Return the normalized embedded source text for one default tool."""
 
     return decode_embedded_tool_source(tool_name)
+
+
+def external_script_is_launcher(tool_name: str) -> bool:
+    """Return whether the tool's external script exists and is a launcher (not a single-file tool)."""
+
+    script_path = external_tool_script_path(tool_name)
+    try:
+        return script_path.is_file() and is_launcher_source(script_path.read_bytes()[:4096])
+    except OSError:
+        return False
+
+
+def missing_tool_packages(tool_name: str) -> list[str]:
+    """Return the packages the tool's launcher needs but that are missing (empty for single-file tools)."""
+
+    if not external_script_is_launcher(tool_name):
+        return []
+    base = tool_workspace_dir()
+    return [name for name in tool_packages(tool_name) if not (base / name / "__init__.py").is_file()]
+
+
+def compile_tool_packages(tool_name: str) -> None:
+    """Compile every module of a launcher-based tool's packages; raise on the first syntax error."""
+
+    if not external_script_is_launcher(tool_name):
+        return
+    base = tool_workspace_dir()
+    missing = missing_tool_packages(tool_name)
+    if missing:
+        raise FileNotFoundError(f"Thiếu thư mục package: {', '.join(missing)}")
+    for name in tool_packages(tool_name):
+        for module_path in sorted((base / name).rglob("*.py")):
+            compile(module_path.read_bytes(), str(module_path), "exec")

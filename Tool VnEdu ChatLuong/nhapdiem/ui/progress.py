@@ -9,6 +9,8 @@ from queue import Empty
 from tkinter import messagebox
 from typing import Callable
 
+from vnedu_common.logging_setup import log_ui_message
+
 from ..config import LOG_MAX_LINES, LOG_TRIM_LINES, ProgressCallback
 from ..scorebook_core import build_progress_caption, clamp_progress_value
 
@@ -41,6 +43,7 @@ class ProgressMixin:
     def _log(self, message: str, *, tag: str = "") -> None:
         line = f"[{datetime.now().strftime('%H:%M:%S')}] {message}"
         print(line)
+        log_ui_message("nhapdiem.ui", message, tag or "info")
         if threading.current_thread() is threading.main_thread():
             self._append_log_line(line, tag=tag)
             return

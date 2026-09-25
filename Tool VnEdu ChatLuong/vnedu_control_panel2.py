@@ -7,6 +7,8 @@ hoặc   python -m control_panel ...
 Lưu ý: control panel tự gọi lại file này (kèm `--tool ...`) để mở từng tool trong tiến trình riêng.
 """
 
+# VNEDU_TOOL_LAUNCHER: control_panel — file này chỉ là launcher, cần package `control_panel/` nằm cạnh.
+
 import os
 import sys
 

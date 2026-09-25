@@ -4,6 +4,8 @@ Mã nguồn nằm trong package `nhanxet/` (xem README.md ở thư mục gốc r
 Chạy:  python nhanxet_pro.py      hoặc   python -m nhanxet
 """
 
+# VNEDU_TOOL_LAUNCHER: nhanxet — file này chỉ là launcher, cần package `nhanxet/` nằm cạnh.
+
 import os
 import sys
 

@@ -7,6 +7,8 @@ Chạy:  python auto_khbd_pro.py      hoặc   python -m auto_khbd
 Import: from auto_khbd_pro import KHDHWizard
 """
 
+# VNEDU_TOOL_LAUNCHER: auto_khbd — file này chỉ là launcher, cần package `auto_khbd/` nằm cạnh.
+
 import os
 import sys
 

@@ -52,8 +52,39 @@ def tool_workspace_dir() -> Path:
             # the packaged app must not silently overwrite it on later launches.
             if not target.exists():
                 shutil.copy2(source, target)
+        _sync_bundled_packages(source_dir, target_dir)
         return target_dir
     return TOOL_DIR
+
+
+_PACKAGES_SYNCED = False
+
+
+def _sync_bundled_packages(source_dir: Path, target_dir: Path) -> None:
+    """Bản .exe: chép các package mà launcher cần sang thư mục chạy tool (một lần mỗi phiên).
+
+    Code trong package thuộc về ứng dụng (người dùng chỉ thay file launcher/tool đơn file),
+    nên luôn đồng bộ theo bản đóng gói mới nhất.
+    """
+
+    global _PACKAGES_SYNCED
+    if _PACKAGES_SYNCED:
+        return
+    _PACKAGES_SYNCED = True
+    names = sorted({name for metadata in TOOL_FILES.values() for name in metadata.get("packages", [])})
+    for name in names:
+        package_dir = source_dir / name
+        if not (package_dir / "__init__.py").is_file():
+            continue
+        for module_path in package_dir.rglob("*.py"):
+            target = target_dir / module_path.relative_to(source_dir)
+            try:
+                if target.exists() and target.read_bytes() == module_path.read_bytes():
+                    continue
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(module_path, target)
+            except OSError:
+                continue
 
 
 def custom_tool_storage_dir() -> Path:
