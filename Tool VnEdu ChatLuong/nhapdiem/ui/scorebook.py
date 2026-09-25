@@ -657,7 +657,12 @@ class ScorebookLoadMixin:
                         # was not found, or no row exposes a target_input_name, the
                         # write step would silently lose every score — so fall back
                         # to the robust slow scan instead of returning broken rows.
-                        _fast_target_leaf = int(_fast_data.get("targetLeafIndex", -1) or -1)
+                        # Giữ đúng chỉ số 0 (trước đây `int(x or -1)` biến cột đầu tiên thành -1).
+                        _raw_target_leaf = _fast_data.get("targetLeafIndex")
+                        try:
+                            _fast_target_leaf = int(_raw_target_leaf) if str(_raw_target_leaf).strip() not in ("", "None") else -1
+                        except (TypeError, ValueError):
+                            _fast_target_leaf = -1
                         _fast_linked = sum(
                             1 for _e in _fast_entries_raw
                             if str(_e.get("target_input_name", "") or "").strip()

@@ -111,7 +111,8 @@ Tool VnEdu ChatLuong/
 │   ├── cdp/                 ChromeBridge (connection, navigation, dropdowns, table, form_fill, form_save, ...)
 │   └── app/                 AutoDaNangApp (schedule_*, class_stats_*, delete_dialog, chrome, window, ...)
 ├── vnedu_common/            Dùng chung: logging_setup (log ra file, bắt lỗi chưa xử lý)
-├── tests/                   Test unittest: nhận xét nhiều câu, nhập điểm từ file, fill_form (ExtJS giả)
+├── tests/                   Test unittest: nhận xét nhiều câu, nhập điểm từ file, fill_form (ExtJS giả),
+│                            worker KHDH (trình duyệt giả)
 └── control_panel/           Dashboard
     ├── embedded_payloads.py Mã tool dự phòng (gzip+base64) — được ghi đè tự động, không sửa tay
     ├── storage.py, custom_tools.py, embedded.py, process.py, login.py, ...
@@ -134,6 +135,33 @@ Phần JavaScript (~600 dòng) nằm ở `auto_sdb/cdp/form_fill_js.py`, chia th
 tìm field/record, chờ store, set combobox / ô thường, luồng chính. Chuỗi ghép lại giống hệt từng ký tự bản
 cũ. `tests/test_fill_form.py` chạy `fill_form` trên trang ExtJS giả (`tests/fixtures/fake_extjs.js`)
 bằng Chromium; đặt `VNEDU_TEST_CHROMIUM=<đường dẫn chrome>` nếu Playwright chưa cài trình duyệt.
+
+### Worker nhập Sổ đầu bài theo KHDH (`_schedule_worker_khdh`)
+
+`auto_sdb/app/schedule_worker_khdh.py`: lớp `KhdhScheduleJob` giữ trạng thái một lần chạy (bộ đếm,
+checkpoint để chạy tiếp) thay cho các hàm lồng dùng `nonlocal`:
+
+```
+run()                      kết nối CDP -> _process_all_weeks() -> _finish() (dọn dẹp + gửi "done")
+  _process_week()          chọn tuần -> lọc lớp -> chọn lớp -> bật "Gợi ý theo KHDH" -> đọc hàng đỏ
+    _process_rows()        từng hàng đỏ, cập nhật checkpoint "hàng kế tiếp"
+      _process_row()       ROW_SKIP / ROW_STOP / ROW_DONE
+        _open_row_form()          bấm "+", chờ popup
+        _read_verified_popup()    đọc popup, dừng nếu popup mở sai hàng
+        _fill_row_form()          điền tối thiểu hoặc điền đủ từ gợi ý hàng đỏ
+        _save_and_confirm_row()   lưu, xác nhận trên bảng, dừng nếu lưu mơ hồ
+```
+
+Hàm thuần (so popup với hàng đỏ, khoá resume, chọn dữ liệu điền…) nằm ở `auto_sdb/app/khdh_rows.py`.
+Đã fuzz so sánh bản cũ/mới với trình duyệt giả: hơn 2.000 kịch bản (lỗi chọn tuần/lớp, Chrome đóng,
+popup sai hàng, lưu mơ hồ, exception, người dùng dừng, chạy tiếp…) cho cùng chuỗi sự kiện và cùng chuỗi
+lệnh gọi trình duyệt. Test: `tests/test_khdh_worker.py`.
+
+**Sửa lỗi chỉ số 0:** bản cũ đọc chỉ số hàng/nút "+" bằng `int(x or -1)`, nên chỉ số 0 bị đổi thành -1 và
+nhánh dự phòng không bấm được nút "+" đầu tiên của tuần. Nay dùng `khdh_rows.as_index()` (giữ đúng 0).
+Fuzz lại: không có chỉ số 0 thì bản cũ/mới giống hệt; có chỉ số 0 thì khác biệt duy nhất là tham số
+`click_add_button` (-1 -> 0). Cùng lỗi ở Nhập điểm (`targetLeafIndex` = 0 làm lấy điểm nhanh rơi về quét
+chậm) cũng đã sửa trong `nhapdiem/ui/scorebook.py`.
 
 ### Lớp lớn = ghép từ nhiều mixin
 
@@ -180,8 +208,9 @@ năng thì mở đúng file mixin: ví dụ lỗi điền form Sổ đầu bài 
 ## Còn để ngỏ (nên xem thêm)
 
 - Một số phương thức rất dài vẫn là một khối, vì tách tiếp cần viết lại logic và phải test trên web thật:
-  `fetch_sodaubai_rows(_bulk)` (~570 dòng mỗi hàm), `AutoDaNangApp._schedule_worker_khdh` (~800),
-  `PlanExecutor._execute_week` (~740). `ChromeBridge.fill_form` đã được tách (xem bên dưới).
+  `fetch_sodaubai_rows(_bulk)` (~570 dòng mỗi hàm), `AutoDaNangApp._schedule_worker` (~640),
+  `PlanExecutor._execute_week` (~740). `ChromeBridge.fill_form` và `_schedule_worker_khdh` đã được tách
+  (xem bên dưới).
 - `nhanxet/automation` và `nhapdiem/scorebook_core` vẫn là hai phiên bản khác nhau của 15 phương thức.
   Có thể hợp nhất nếu bản của Nhập điểm cũng đúng cho luồng Ghi nhận xét (cần test thực tế).
 - Code có vẻ làm dở mà pyflakes chỉ ra, được giữ nguyên để không đổi giao diện/hành vi:

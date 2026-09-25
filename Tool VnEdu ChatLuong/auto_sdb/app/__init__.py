@@ -10,6 +10,7 @@ Mục lục module:
     class_stats_workers   Worker thống kê chạy nền.
     delete_dialog         Xoá dữ liệu sổ đầu bài theo khoảng tuần.
     inspect               Xem thông tin trang, khôi phục UI VnEdu.
+    khdh_rows             Xử lý dữ liệu hàng đỏ KHDH và popup "Chi tiết tiết học" — hàm thuần, không cần trình duyệt.
     layout                Dựng giao diện chính và khu Chrome CDP.
     quick_actions         Chuẩn bị nhanh và tự đăng nhập + chạy.
     schedule_form         Quét form, chọn môn/phân môn và dựng yêu cầu chạy lịch.
