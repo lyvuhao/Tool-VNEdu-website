@@ -84,8 +84,15 @@ class ToolCardsMixin:
         ).grid(
             row=0, column=0, sticky="w", padx=(0, 12)
         )
-        ttk.Label(frame, text=metadata["description"], wraplength=320, style="PanelMuted.TLabel").grid(
-            row=1, column=0, sticky="w", padx=(0, 12), pady=(5, 0)
+        description = ttk.Label(frame, text=metadata["description"], wraplength=250, style="PanelMuted.TLabel")
+        description.grid(row=1, column=0, sticky="w", padx=(0, 12), pady=(5, 0))
+        # Xuống dòng theo bề rộng thật của cột chữ (trước đây cố định 320px nên chữ bị nút "Mở" che mất).
+        frame.bind(
+            "<Configure>",
+            lambda event, label=description: label.configure(
+                wraplength=max(160, event.width - 150)
+            ),
+            add="+",
         )
         row_span = 3 if advanced else 2
         if advanced:

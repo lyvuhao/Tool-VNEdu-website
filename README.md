@@ -111,12 +111,29 @@ Tool VnEdu ChatLuong/
 │   ├── cdp/                 ChromeBridge (connection, navigation, dropdowns, table, form_fill, form_save, ...)
 │   └── app/                 AutoDaNangApp (schedule_*, class_stats_*, delete_dialog, chrome, window, ...)
 ├── vnedu_common/            Dùng chung: logging_setup (log ra file, bắt lỗi chưa xử lý)
-├── tests/                   Test unittest cho logic nhận xét nhiều câu và nhập điểm từ file
+├── tests/                   Test unittest: nhận xét nhiều câu, nhập điểm từ file, fill_form (ExtJS giả)
 └── control_panel/           Dashboard
     ├── embedded_payloads.py Mã tool dự phòng (gzip+base64) — được ghi đè tự động, không sửa tay
     ├── storage.py, custom_tools.py, embedded.py, process.py, login.py, ...
     └── ui/                  ControlPanelApp (widgets, health, dashboard, screens, tool_dialogs, ...)
 ```
+
+### `fill_form` (Sổ đầu bài) — điền popup "Chi tiết tiết học"
+
+`auto_sdb/cdp/form_fill.py` giờ chỉ điều phối các bước; mỗi bước là một hàm riêng:
+
+| Bước | Hàm | Việc làm |
+|---|---|---|
+| 1 | `_mon_hoc_field_candidates` | Tên field Môn học có thể có |
+| 2 | `_prime_popup_combo_stores` / `_wait_popup_combo_stores` | Expand/bindStore combobox lazy-load, chờ store nạp |
+| 3 | `_build_fill_form_payload` | Gom tham số gửi xuống JS |
+| 4 | `JS_FILL_POPUP_FORM` | Điền + xác minh từng field trong trình duyệt |
+| 5 | `_finish_fill_form` | Tên bài tự điền theo PPCT, dựng thông điệp kết quả |
+
+Phần JavaScript (~600 dòng) nằm ở `auto_sdb/cdp/form_fill_js.py`, chia theo nhóm hàm: tìm popup, đọc store,
+tìm field/record, chờ store, set combobox / ô thường, luồng chính. Chuỗi ghép lại giống hệt từng ký tự bản
+cũ. `tests/test_fill_form.py` chạy `fill_form` trên trang ExtJS giả (`tests/fixtures/fake_extjs.js`)
+bằng Chromium; đặt `VNEDU_TEST_CHROMIUM=<đường dẫn chrome>` nếu Playwright chưa cài trình duyệt.
 
 ### Lớp lớn = ghép từ nhiều mixin
 
@@ -163,8 +180,8 @@ năng thì mở đúng file mixin: ví dụ lỗi điền form Sổ đầu bài 
 ## Còn để ngỏ (nên xem thêm)
 
 - Một số phương thức rất dài vẫn là một khối, vì tách tiếp cần viết lại logic và phải test trên web thật:
-  `ChromeBridge.fill_form` (~800 dòng), `fetch_sodaubai_rows(_bulk)` (~570 dòng mỗi hàm),
-  `AutoDaNangApp._schedule_worker_khdh` (~800), `PlanExecutor._execute_week` (~740).
+  `fetch_sodaubai_rows(_bulk)` (~570 dòng mỗi hàm), `AutoDaNangApp._schedule_worker_khdh` (~800),
+  `PlanExecutor._execute_week` (~740). `ChromeBridge.fill_form` đã được tách (xem bên dưới).
 - `nhanxet/automation` và `nhapdiem/scorebook_core` vẫn là hai phiên bản khác nhau của 15 phương thức.
   Có thể hợp nhất nếu bản của Nhập điểm cũng đúng cho luồng Ghi nhận xét (cần test thực tế).
 - Code có vẻ làm dở mà pyflakes chỉ ra, được giữ nguyên để không đổi giao diện/hành vi:
