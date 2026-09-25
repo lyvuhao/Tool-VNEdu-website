@@ -377,8 +377,8 @@ class LayoutMixin:
         widths = {
             "row_index": 56,
             "student_name": 320,
-            "current_score": 100,
-            "pending_score": 108,
+            "current_score": 130,
+            "pending_score": 124,
             "recognized_text": 300,
             "match_score": 72,
             "status": 160,
@@ -386,8 +386,8 @@ class LayoutMixin:
         min_widths = {
             "row_index": 48,
             "student_name": 240,
-            "current_score": 88,
-            "pending_score": 96,
+            "current_score": 116,
+            "pending_score": 112,
             "recognized_text": 210,
             "match_score": 64,
             "status": 100,

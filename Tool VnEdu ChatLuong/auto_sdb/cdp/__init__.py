@@ -9,6 +9,7 @@ Mục lục module:
     dropdowns       Đọc/chọn dropdown Tuần, Lớp và danh sách lớp.
     entry_flow      Luồng nhập hoàn chỉnh: ➕ → điền → lưu → đóng.
     form_fill       Đọc và điền form nhập liệu.
+    form_fill_js    JavaScript chạy trong popup "Chi tiết tiết học" (ExtJS 4) của Sổ đầu bài — dùng bởi `fill_form`.
     form_save       Lưu form (qua giao diện hoặc API).
     form_wait       Chờ form sẵn sàng và bấm nút ➕ mở form.
     health          Kiểm tra cổng CDP và liệt kê tab Chrome.
