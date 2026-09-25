@@ -21,6 +21,7 @@ import time
 
 from ..cdp.bridge import ChromeBridge
 from ..cdp.health import is_cdp_target_closed_error
+from ..cdp.lesson_form import LessonFormMixin
 from .khdh_rows import parse_nhan_xet_items
 
 # Kết quả xử lý một slot (thay cho continue trong vòng lặp cũ)
@@ -37,8 +38,8 @@ def slot_key(thu, buoi, tiet):
     hàng đọc từ `read_table`, kể cả Chủ nhật.
     """
     return (
-        ChromeBridge._normalize_thu_token(thu),
-        ChromeBridge._normalize_buoi_token(buoi),
+        LessonFormMixin._normalize_thu_token(thu),
+        LessonFormMixin._normalize_buoi_token(buoi),
         str(tiet).strip(),
     )
 
@@ -353,7 +354,7 @@ class ScheduleJob:
         return True
 
     def _process_week(self, tuan_num):
-        """Xử lý một tuần. Trả về False khi phải dừng hẳn (người dùng dừng / Chrome đóng)."""
+        """Xử lý một tuần. Trả về False khi phải dừng hẳn (người dùng dừng, Chrome đóng, lưu mơ hồ…)."""
         q = self.q
         lop_text = self.lop_text
         slot_begin_idx = self.start_slot_idx if tuan_num == self.start_tuan_num else 0
@@ -397,7 +398,10 @@ class ScheduleJob:
                f"📅 {tuan_text} xong: {self.completed} nhập, "
                f"{self.skipped} skip, {self.errors} lỗi",
                "info"))
-        return True
+        # Đã dừng giữa tuần (người dùng dừng, lưu mơ hồ, hàng có dữ liệu mà không đọc được PPCT) ->
+        # dừng hẳn, giữ checkpoint tại slot đang dở. Bản cũ vẫn sang tuần sau: ghi đè checkpoint thành
+        # "tuần sau, slot 0" (mất các slot còn lại) và còn lưu thêm slot đầu của mỗi tuần sau.
+        return not self.stopped
 
     def _process_slots(self, tuan_num, slot_begin_idx):
         q = self.q

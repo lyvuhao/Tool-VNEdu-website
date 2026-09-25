@@ -163,6 +163,33 @@ Fuzz lại: không có chỉ số 0 thì bản cũ/mới giống hệt; có ch�
 `click_add_button` (-1 -> 0). Cùng lỗi ở Nhập điểm (`targetLeafIndex` = 0 làm lấy điểm nhanh rơi về quét
 chậm) cũng đã sửa trong `nhapdiem/ui/scorebook.py`.
 
+### Worker nhập Sổ đầu bài theo lịch — thủ công (`_schedule_worker`)
+
+`auto_sdb/app/schedule_job.py`: lớp `ScheduleJob` (cùng kiểu với `KhdhScheduleJob`), `_schedule_worker`
+chỉ còn gọi `ScheduleJob(app, params).run()`:
+
+```
+run()                        kết nối CDP -> _process_all_weeks() -> _finish() (dọn dẹp + gửi "done")
+  _process_week()            chọn tuần -> chọn lớp -> đọc bảng tuần (WeekRowCache)
+    _process_slots()         từng slot trong lịch, cập nhật checkpoint "slot kế tiếp"
+      _process_slot()        SLOT_DONE / SLOT_SKIP
+        _resolve_slot_row()       tìm hàng của slot, đọc lại bảng nếu cần
+        _handle_existing_row()    hàng đã có dữ liệu -> bỏ qua, đồng bộ PPCT
+        _open_slot_form()         bấm "+", chờ form
+        _fill_slot_form()         điền PPCT, HS nghỉ, nhận xét, điểm, môn/phân môn
+        _save_and_confirm_slot()  lưu, xác nhận trên bảng, dừng nếu lưu mơ hồ
+```
+
+Fuzz so sánh với bản cũ: 1.400 kịch bản giống hệt (cùng chuỗi sự kiện và lệnh gọi trình duyệt), phủ mọi
+kết quả slot. Test: `tests/test_schedule_worker.py`.
+
+**Sửa lỗi "dừng mà không dừng":** khi worker tự dừng giữa tuần (lưu mơ hồ, hàng đã có dữ liệu mà không đọc
+được PPCT) hoặc người dùng bấm dừng, bản cũ chỉ thoát vòng slot rồi vẫn sang tuần sau: checkpoint bị ghi đè
+thành "tuần sau, slot 0" (chạy tiếp sẽ bỏ sót các slot còn lại của tuần đang dở), và với dừng do lỗi thì còn
+**lưu thêm** slot đầu của mỗi tuần sau. Nay dừng hẳn, checkpoint giữ đúng slot đang dở. Fuzz sau khi sửa:
+kịch bản không dừng giữa chừng vẫn giống hệt bản cũ; kịch bản có dừng thì bản mới là phần đầu của bản cũ
+(dừng sớm hơn), không ghi gì thêm.
+
 ### Lớp lớn = ghép từ nhiều mixin
 
 Các lớp khổng lồ trước đây (ví dụ `ChromeBridge` ~8.500 dòng, `AutoDaNangApp` ~10.200 dòng,
@@ -208,9 +235,8 @@ năng thì mở đúng file mixin: ví dụ lỗi điền form Sổ đầu bài 
 ## Còn để ngỏ (nên xem thêm)
 
 - Một số phương thức rất dài vẫn là một khối, vì tách tiếp cần viết lại logic và phải test trên web thật:
-  `fetch_sodaubai_rows(_bulk)` (~570 dòng mỗi hàm), `AutoDaNangApp._schedule_worker` (~640),
-  `PlanExecutor._execute_week` (~740). `ChromeBridge.fill_form` và `_schedule_worker_khdh` đã được tách
-  (xem bên dưới).
+  `fetch_sodaubai_rows(_bulk)` (~570 dòng mỗi hàm), `PlanExecutor._execute_week` (~740).
+  `ChromeBridge.fill_form`, `_schedule_worker_khdh` và `_schedule_worker` đã được tách (xem ở trên).
 - `nhanxet/automation` và `nhapdiem/scorebook_core` vẫn là hai phiên bản khác nhau của 15 phương thức.
   Có thể hợp nhất nếu bản của Nhập điểm cũng đúng cho luồng Ghi nhận xét (cần test thực tế).
 - Code có vẻ làm dở mà pyflakes chỉ ra, được giữ nguyên để không đổi giao diện/hành vi:

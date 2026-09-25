@@ -15,6 +15,7 @@ Mục lục module:
     quick_actions         Chuẩn bị nhanh và tự đăng nhập + chạy.
     schedule_form         Quét form, chọn môn/phân môn và dựng yêu cầu chạy lịch.
     schedule_form_state   Kiểm tra form lịch, preflight KHDH và tóm tắt kết quả.
+    schedule_job          Worker nhập Sổ đầu bài theo lịch (chế độ thủ công): một lần chạy = một `ScheduleJob`.
     schedule_panel        Khu Lịch dạy: dựng panel và chế độ lịch.
     schedule_resume       Lưu/khôi phục tiến trình chạy lịch (resume).
     schedule_run          Chạy / tiếp tục / dừng nhập theo lịch.
