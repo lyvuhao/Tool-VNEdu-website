@@ -10,7 +10,13 @@ from typing import Dict, List
 
 from ..config import CONFIG_FILE, DEFAULT_RULE_EXPORT_DIR
 from ..models import CommentRule, CommentWriteRow
-from ..rules import compile_comment_rules, describe_condition, parse_condition
+from ..rules import (
+    COMMENT_VARIANT_SEPARATOR,
+    compile_comment_rules,
+    describe_condition,
+    parse_condition,
+    split_comment_variants,
+)
 
 
 class RulesMixin:
@@ -18,12 +24,30 @@ class RulesMixin:
 
     def _seed_default_rules(self, count: int) -> List[CommentRule]:
         """Returns a default rule template set for quick first use."""
+        # Mỗi mức điểm có vài câu (ngăn bằng " | "); tool chia đều các câu cho học sinh.
         defaults = [
-            CommentRule(">=8", "Hoàn thành tốt yêu cầu cần đạt của bộ môn, chủ động, tự giác trong học tập và rèn luyện."),
-            CommentRule("6.5-7.9", "Hoàn thành khá tốt nội dung kiến thức đã học, vận dụng được vào bài thực hành, chăm chỉ trong học tập."),
-            CommentRule("6-6.4", "Tiếp thu được các kiến thức cơ bản của môn học, có ý thức tự giác, tương đối chủ động trong học tập."),
-            CommentRule("5-5.9", "Hoàn thành được các yêu cầu của bộ môn, chủ động hơn trong học tập, tăng cường rèn luyện kỹ năng giải bài tập."),
-            CommentRule("<5", "Chưa hoàn thành các yêu cầu cần đạt của bộ môn, còn thụ động, tăng cường luyện tập kỹ năng thực hành."),
+            CommentRule(">=8", " | ".join([
+                "Hoàn thành tốt yêu cầu cần đạt của bộ môn, chủ động, tự giác trong học tập và rèn luyện.",
+                "Nắm vững kiến thức, vận dụng tốt vào bài tập; tích cực, tự giác trong học tập.",
+                "Học tập chăm chỉ, tiếp thu bài nhanh, hoàn thành tốt các nhiệm vụ học tập của bộ môn.",
+            ])),
+            CommentRule("6.5-7.9", " | ".join([
+                "Hoàn thành khá tốt nội dung kiến thức đã học, vận dụng được vào bài thực hành, chăm chỉ trong học tập.",
+                "Nắm được kiến thức cơ bản và vận dụng khá tốt; cần phát huy hơn nữa tính chủ động trong học tập.",
+                "Có ý thức học tập tốt, hoàn thành khá các yêu cầu của bộ môn; cần rèn thêm kỹ năng làm bài.",
+            ])),
+            CommentRule("6-6.4", " | ".join([
+                "Tiếp thu được các kiến thức cơ bản của môn học, có ý thức tự giác, tương đối chủ động trong học tập.",
+                "Nắm được kiến thức cơ bản của môn học; cần chủ động và cố gắng nhiều hơn để đạt kết quả cao hơn.",
+            ])),
+            CommentRule("5-5.9", " | ".join([
+                "Hoàn thành được các yêu cầu của bộ môn, chủ động hơn trong học tập, tăng cường rèn luyện kỹ năng giải bài tập.",
+                "Đạt yêu cầu cơ bản của bộ môn; cần chăm chỉ hơn, tích cực luyện tập để tiến bộ.",
+            ])),
+            CommentRule("<5", " | ".join([
+                "Chưa hoàn thành các yêu cầu cần đạt của bộ môn, còn thụ động, tăng cường luyện tập kỹ năng thực hành.",
+                "Chưa đạt yêu cầu của bộ môn; cần cố gắng nhiều hơn, chú ý nghe giảng và làm bài tập đầy đủ.",
+            ])),
             CommentRule("Đ", "Hoàn thành tốt yêu cầu cần đạt của bộ môn, chủ động, tự giác trong học tập và rèn luyện."),
             CommentRule("CĐ", "Chưa hoàn thành tốt nội dung kiến thức môn học."),
         ]
@@ -81,7 +105,11 @@ class RulesMixin:
         header.pack(fill=tk.X, pady=(0, 4))
         ttk.Label(header, text="STT", width=6).pack(side=tk.LEFT, padx=(0, 4))
         ttk.Label(header, text="Điều kiện", width=18).pack(side=tk.LEFT, padx=(0, 4))
-        ttk.Label(header, text="Mẫu nhận xét", anchor="w").pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ttk.Label(
+            header,
+            text="Mẫu nhận xét  (nhiều câu: ngăn cách bằng dấu | — tool chia đều các câu cho học sinh)",
+            anchor="w",
+        ).pack(side=tk.LEFT, fill=tk.X, expand=True)
 
         seeded_rules = list(initial_rules or self._seed_default_rules(count))
         for index in range(count):
@@ -93,19 +121,75 @@ class RulesMixin:
             template_var = tk.StringVar()
             condition_entry = ttk.Entry(row_frame, textvariable=condition_var, width=18)
             template_entry = ttk.Entry(row_frame, textvariable=template_var)
+            variant_button = ttk.Button(
+                row_frame,
+                text="✎",
+                width=3,
+                command=lambda var=template_var, cond=condition_var, number=index + 1: self._open_variant_editor(
+                    var, cond, number
+                ),
+            )
             condition_entry.pack(side=tk.LEFT, padx=(0, 4))
+            variant_button.pack(side=tk.RIGHT, padx=(4, 0))
             template_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
             self.score_forms.append({"condition": condition_var, "template": template_var})
             self._busy_widgets.append((condition_entry, "normal"))
             self._busy_widgets.append((template_entry, "normal"))
-            self._rule_busy_widgets.extend([condition_entry, template_entry])
+            self._busy_widgets.append((variant_button, "normal"))
+            self._rule_busy_widgets.extend([condition_entry, template_entry, variant_button])
             condition_var.trace_add("write", self._schedule_config_autosave)
             template_var.trace_add("write", self._schedule_config_autosave)
 
             if index < len(seeded_rules):
                 condition_var.set(seeded_rules[index].condition)
                 template_var.set(seeded_rules[index].template)
+
+    def _open_variant_editor(self, template_var: tk.StringVar, condition_var: tk.StringVar, number: int) -> None:
+        """Hộp thoại soạn nhiều câu nhận xét cho một rule: mỗi dòng là một câu."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title(f"Rule {number} — các câu nhận xét")
+        dialog.transient(self.root)
+        dialog.geometry("720x360")
+        condition = condition_var.get().strip() or "(chưa có điều kiện)"
+        ttk.Label(
+            dialog,
+            text=(
+                f"Điều kiện: {condition}\n"
+                "Mỗi dòng là một câu nhận xét. Tool chia đều các câu cho học sinh cùng mức điểm "
+                "(bạn liền nhau nhận câu khác nhau); học sinh đã có đúng một câu trong danh sách thì giữ nguyên."
+            ),
+            wraplength=690,
+            justify=tk.LEFT,
+        ).pack(fill=tk.X, padx=10, pady=(10, 6))
+        text = tk.Text(dialog, wrap="word", height=10, undo=True)
+        text.pack(fill=tk.BOTH, expand=True, padx=10)
+        text.insert("1.0", "\n".join(split_comment_variants(template_var.get())) if template_var.get().strip() else "")
+        count_var = tk.StringVar()
+
+        def refresh_count(_event=None) -> None:
+            lines = [line.strip() for line in text.get("1.0", "end").splitlines() if line.strip()]
+            count_var.set(f"{len(lines)} câu")
+
+        def save() -> None:
+            lines = [line.strip().replace(COMMENT_VARIANT_SEPARATOR, "/") for line in text.get("1.0", "end").splitlines()]
+            lines = [line for line in lines if line]
+            if not lines:
+                messagebox.showwarning("Thiếu câu nhận xét", "Cần ít nhất một câu nhận xét.", parent=dialog)
+                return
+            template_var.set(f" {COMMENT_VARIANT_SEPARATOR} ".join(lines))
+            self._log(f"Rule {number}: đã lưu {len(lines)} câu nhận xét.")
+            dialog.destroy()
+
+        buttons = ttk.Frame(dialog)
+        buttons.pack(fill=tk.X, padx=10, pady=10)
+        ttk.Label(buttons, textvariable=count_var).pack(side=tk.LEFT)
+        ttk.Button(buttons, text="Huỷ", command=dialog.destroy).pack(side=tk.RIGHT)
+        ttk.Button(buttons, text="Lưu", command=save).pack(side=tk.RIGHT, padx=(0, 6))
+        text.bind("<KeyRelease>", refresh_count)
+        refresh_count()
+        text.focus_set()
+        dialog.grab_set()
 
     def on_build_rule_forms(self) -> None:
         """Rebuilds the rule forms from the requested form count."""
@@ -204,6 +288,10 @@ class RulesMixin:
                 )
 
         self._warn_rule_overlap(rules)
+        for index, rule in enumerate(rules, start=1):
+            variant_count = len(split_comment_variants(rule.template))
+            if variant_count > 1:
+                self._log(f"Rule {index} (`{rule.condition}`): {variant_count} câu nhận xét, chia đều cho học sinh.")
         return rules
 
     def _write_status_label(self, status: str) -> str:

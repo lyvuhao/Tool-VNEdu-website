@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Callable, List, Tuple
+from typing import Callable, Dict, List, Tuple
 
 from .config import NUMERIC_COMMENT_SCORE_RE
 from .models import CommentRule
@@ -150,3 +150,43 @@ def match_comment_for_value(
             continue
 
     return None, ""
+
+
+# Nhiều câu nhận xét cho cùng một rule: ngăn cách bằng dấu này trong ô "Mẫu nhận xét".
+COMMENT_VARIANT_SEPARATOR = "|"
+
+
+def split_comment_variants(template: str) -> List[str]:
+    """Tách ô "Mẫu nhận xét" thành các câu; ô không có dấu `|` -> đúng một câu như trước."""
+    variants = [part.strip() for part in str(template).split(COMMENT_VARIANT_SEPARATOR)]
+    variants = [part for part in variants if part]
+    return variants or [str(template).strip()]
+
+
+class CommentVariantPicker:
+    """Chia đều các câu nhận xét của cùng một rule cho học sinh trong một lần phân tích.
+
+    - Học sinh đã có nhận xét trùng một câu của rule -> giữ nguyên (chạy lại không bị xáo trộn).
+    - Học sinh mới -> nhận câu đang được dùng ít nhất (hoà thì lấy câu đứng trước), nên các
+      bạn liền nhau cùng mức điểm sẽ nhận câu khác nhau. Kết quả chỉ phụ thuộc dữ liệu vào,
+      nên bước xem trước và bước ghi luôn ra cùng một kết quả.
+    """
+
+    def __init__(self) -> None:
+        self._usage: Dict[Tuple[str, str], int] = {}
+
+    def register_existing(self, condition: str, variants: List[str], current_comment: str) -> None:
+        """Đếm trước nhận xét đang có trên Sổ điểm nếu nó là một câu của rule."""
+        current = str(current_comment).strip()
+        if current in variants:
+            key = (condition, current)
+            self._usage[key] = self._usage.get(key, 0) + 1
+
+    def pick(self, condition: str, variants: List[str]) -> str:
+        """Chọn câu dùng ít nhất cho một học sinh mới."""
+        if len(variants) == 1:
+            return variants[0]
+        counts = [self._usage.get((condition, variant), 0) for variant in variants]
+        chosen = variants[counts.index(min(counts))]
+        self._usage[(condition, chosen)] = self._usage.get((condition, chosen), 0) + 1
+        return chosen

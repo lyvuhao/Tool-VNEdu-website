@@ -6,7 +6,12 @@ import json
 from typing import Callable, Dict, List, Tuple
 
 from .models import CommentWriteResult, CommentWriteRow
-from .rules import looks_like_numeric_comment_score, match_comment_for_value
+from .rules import (
+    CommentVariantPicker,
+    looks_like_numeric_comment_score,
+    match_comment_for_value,
+    split_comment_variants,
+)
 
 
 def plan_comment_row_write(
@@ -14,8 +19,13 @@ def plan_comment_row_write(
     current_comment: str,
     compiled_rules: List[Tuple[Callable[[object], bool], str, str]],
     allow_overwrite_existing_comment: bool = False,
+    variant_picker: CommentVariantPicker | None = None,
 ) -> Tuple[str, str, str]:
-    """Returns the proposed comment, queue status, and explanation for one live score row."""
+    """Returns the proposed comment, queue status, and explanation for one live score row.
+
+    Rule có nhiều câu (ngăn bằng `|`): nhận xét hiện có trùng một câu thì giữ nguyên, nếu không
+    thì `variant_picker` chọn câu (không có picker -> câu đầu tiên).
+    """
     normalized_source_value = str(source_value).strip()
     normalized_current_comment = str(current_comment).strip()
     current_comment_is_numeric_score = looks_like_numeric_comment_score(normalized_current_comment)
@@ -43,9 +53,12 @@ def plan_comment_row_write(
             f"Không khớp rule nào cho giá trị `{normalized_source_value}`.",
         )
 
-    proposed_comment = matched_comment
-    if proposed_comment.strip() == normalized_current_comment:
-        return proposed_comment, "skip_same", "Nhận xét hiện tại đã giống kết quả dự kiến."
+    variants = split_comment_variants(matched_comment)
+    if normalized_current_comment in variants:
+        return normalized_current_comment, "skip_same", "Nhận xét hiện tại đã giống kết quả dự kiến."
+    proposed_comment = variant_picker.pick(matched_condition, variants) if variant_picker else variants[0]
+    if len(variants) > 1:
+        return proposed_comment, "ready", f"Khớp rule `{matched_condition}` (câu {variants.index(proposed_comment) + 1}/{len(variants)})."
     return proposed_comment, "ready", f"Khớp rule `{matched_condition}`."
 
 
@@ -55,6 +68,7 @@ def build_comment_write_row_from_live_data(
     source_column_name: str,
     compiled_rules: List[Tuple[Callable[[object], bool], str, str]],
     allow_overwrite_existing_comment: bool = False,
+    variant_picker: CommentVariantPicker | None = None,
 ) -> CommentWriteRow:
     """Builds one queue row from one live DOM row snapshot and the compiled rule set."""
     source_value = str(live_row.get("sourceValue", "")).strip()
@@ -64,6 +78,7 @@ def build_comment_write_row_from_live_data(
         current_comment,
         compiled_rules,
         allow_overwrite_existing_comment=allow_overwrite_existing_comment,
+        variant_picker=variant_picker,
     )
     return CommentWriteRow(
         row_index=int(live_row.get("rowIndex", 0) or 0),
@@ -87,7 +102,21 @@ def build_comment_write_rows_from_live_data(
     compiled_rules: List[Tuple[Callable[[object], bool], str, str]],
     allow_overwrite_existing_comment: bool = False,
 ) -> List[CommentWriteRow]:
-    """Builds the internal comment queue rows from live DOM rows."""
+    """Builds the internal comment queue rows from live DOM rows.
+
+    Các câu của rule nhiều câu được chia đều cho cả lớp (xem CommentVariantPicker).
+    """
+    variant_picker = CommentVariantPicker()
+    for live_row in live_rows:
+        matched_comment, matched_condition = match_comment_for_value(
+            str(live_row.get("sourceValue", "")).strip(), compiled_rules
+        )
+        if matched_comment is not None:
+            variant_picker.register_existing(
+                matched_condition,
+                split_comment_variants(matched_comment),
+                str(live_row.get("currentComment", "")),
+            )
     return [
         build_comment_write_row_from_live_data(
             live_row,
@@ -95,6 +124,7 @@ def build_comment_write_rows_from_live_data(
             source_column_name=source_column_name,
             compiled_rules=compiled_rules,
             allow_overwrite_existing_comment=allow_overwrite_existing_comment,
+            variant_picker=variant_picker,
         )
         for live_row in live_rows
     ]
