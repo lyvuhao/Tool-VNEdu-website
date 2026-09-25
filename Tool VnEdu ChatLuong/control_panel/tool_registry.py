@@ -31,6 +31,12 @@ TOOL_FILES = {
         "title": "Sổ đầu bài",
         "description": "Nhập Chi tiết sổ đầu bài qua Chrome CDP.",
     },
+    "khdh": {
+        "script": "auto_khbd_pro.py",
+        "packages": ["auto_khbd", "vnedu_common"],
+        "title": "Kế hoạch dạy học",
+        "description": "Tự điền KHDH theo TKB và PPCT.",
+    },
 }
 
 # Dấu nhận diện file launcher (xem các file *_pro.py / auto_SĐB.py ở thư mục tool).

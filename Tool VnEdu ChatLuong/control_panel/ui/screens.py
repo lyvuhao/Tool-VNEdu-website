@@ -132,12 +132,13 @@ class ScreensMixin:
 
         self._clear_root()
         self.root.unbind("<Return>")
+        extra_height = self._card_row_height() * self._extra_default_card_rows()
         if self.advanced_mode_var.get():
-            self.root.geometry("900x395+70+65")
-            self.root.minsize(860, 390)
+            self.root.geometry(f"900x{395 + extra_height}+70+65")
+            self.root.minsize(860, 390 + extra_height)
         else:
-            self.root.geometry("900x370+70+65")
-            self.root.minsize(860, 365)
+            self.root.geometry(f"900x{370 + extra_height}+70+65")
+            self.root.minsize(860, 365 + extra_height)
         self.root.resizable(False, False)
         self.custom_tools = load_custom_tools()
         self._refresh_session_caption()

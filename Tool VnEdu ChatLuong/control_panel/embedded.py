@@ -54,7 +54,8 @@ def extract_embedded_tool_script(tool_name: str, script_name: str) -> Path:
 def encode_embedded_tool_source(source: bytes) -> str:
     """Return a compact base64+gzip payload for one tool source file."""
 
-    return base64.b64encode(gzip.compress(source, compresslevel=9)).decode("ascii")
+    # mtime=0: cùng nội dung -> cùng payload (cập nhật bản nhúng không tạo thay đổi thừa trong git).
+    return base64.b64encode(gzip.compress(source, compresslevel=9, mtime=0)).decode("ascii")
 
 
 def sha256_hex(data: bytes) -> str:

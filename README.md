@@ -74,6 +74,10 @@ file CSV thì không cần.
   nhúng, launcher không bị nhúng nhầm thay cho bản đơn file.
 - Kiểm tra sức khoẻ tool và `--self-test` compile cả package. Bản `.exe` tự chép các package sang thư mục
   chạy tool.
+- Dashboard có thêm thẻ **Kế hoạch dạy học** (chạy `auto_khbd_pro.py`, kèm bản nhúng dự phòng đơn file).
+  Cửa sổ dashboard tự cao thêm để thấy đủ thẻ mặc định mà không phải cuộn.
+- Bản nhúng dự phòng được nén ổn định (cùng nội dung → cùng chuỗi), nên cập nhật bản nhúng không tạo thay
+  đổi thừa trong git.
 
 ## Cấu trúc
 
@@ -162,4 +166,5 @@ năng thì mở đúng file mixin: ví dụ lỗi điền form Sổ đầu bài 
   - `detail_text` được tính nhưng không hiển thị (`control_panel/ui/tool_dialogs.py`);
   - `expected_score_pairs` (`nhapdiem/scorebook_core/automation/payload_write.py`).
 - "Lọc học lực" (`locdiem.py`) không có trong repo nên dashboard vẫn chạy bản nhúng của nó.
-- Tool KHDH (`auto_khbd_pro.py`) chưa có thẻ trên dashboard (có thể thêm dạng "tool tuỳ chỉnh").
+- Thẻ KHDH chưa nhận tài khoản từ dashboard: KHDH tự kết nối Chrome đang mở (cổng 9224), nên nếu đã đăng
+  nhập VNEDU từ dashboard thì dùng lại được phiên đó.

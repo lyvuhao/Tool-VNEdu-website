@@ -111,12 +111,23 @@ class DashboardMixin:
             ).pack(anchor="w")
         self.tool_count_var.set(f"{visible_count} tool")
 
+    def _card_row_height(self) -> int:
+        """Height of one row of tool cards in the dashboard (cards are laid out 2 per row)."""
+
+        return 121 if self.advanced_mode_var.get() else 109
+
+    def _extra_default_card_rows(self) -> int:
+        """Card rows beyond the original 2, so every default tool is visible without scrolling."""
+
+        return max(0, (len(TOOL_FILES) + 1) // 2 - 2)
+
     def _scrollable_tool_area(self, parent: ttk.Frame) -> tuple[ttk.Frame, ttk.Frame]:
         """Create a fixed-height, mouse-wheel-scrollable area for tool cards."""
 
         container = ttk.Frame(parent, style="App.TFrame")
         container.columnconfigure(0, weight=1)
-        area_height = 242 if self.advanced_mode_var.get() else 218
+        # Đủ chỗ cho mọi tool mặc định; tool thêm mới vượt quá thì cuộn.
+        area_height = self._card_row_height() * (2 + self._extra_default_card_rows())
         canvas = tk.Canvas(container, bg=SURFACE_COLOR, height=area_height, highlightthickness=0, bd=0)
         scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
         canvas.configure(yscrollcommand=scrollbar.set)

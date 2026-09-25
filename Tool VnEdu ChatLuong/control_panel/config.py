@@ -53,6 +53,7 @@ TOOL_ACCENTS = {
     "nhanxet": "#16a34a",
     "locdiem": "#d97706",
     "sodaubai": "#7c3aed",
+    "khdh": "#0891b2",
 }
 
 
