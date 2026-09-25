@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+# Log xoay vòng của các tool (vnedu_common.logging_setup)
+logs/
