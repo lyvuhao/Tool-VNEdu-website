@@ -21,6 +21,7 @@ import time
 from ..cdp.bridge import ChromeBridge
 from ..cdp.health import is_cdp_target_closed_error
 from .khdh_rows import (
+    as_index,
     build_work_items,
     digits,
     missing_fill_fields,
@@ -516,8 +517,8 @@ class KhdhScheduleJob:
             return ROW_SKIP
 
         ok, msg = self.bridge.click_add_button(
-            row_index=int(row_info.get("add_btn_index", -1) or -1),
-            row_dom_index=int(row_info.get("rowIdx", -1) or -1),
+            row_index=as_index(row_info.get("add_btn_index")),
+            row_dom_index=as_index(row_info.get("rowIdx")),
         )
         if not ok:
             self.errors += 1

@@ -17,9 +17,8 @@ CLOSED = "Target page, context or browser has been closed"
 
 
 def row(i, **extra):
-    # rowIdx/add_btn_index bắt đầu từ 1 như bảng thật (hàng 0 là tiêu đề). Lưu ý: worker dùng
-    # `int(x or -1)` nên chỉ số 0 bị đổi thành -1 (hành vi có sẵn, giữ nguyên).
-    base = {"has_add_btn": True, "rowIdx": i + 1, "add_btn_index": i + 1, "thu": "2", "buoi": "Sáng", "tiet": str(i + 1),
+    # rowIdx bắt đầu từ 1 như bảng thật (hàng 0 là tiêu đề); add_btn_index bắt đầu từ 0.
+    base = {"has_add_btn": True, "rowIdx": i + 1, "add_btn_index": i, "thu": "2", "buoi": "Sáng", "tiet": str(i + 1),
             "mon_hoc_id": "11", "phan_mon_id": "", "ppct_hint": f"Tiết {10 + i}", "noi_dung_hint": f"Bài {i}",
             "ngay": "8/9/2025"}
     base.update(extra)
@@ -117,6 +116,9 @@ def run_job(script, params=None, stop_after=None):
 
 
 class KhdhRowsTests(unittest.TestCase):
+    def test_as_index_keeps_zero(self):
+        self.assertEqual([R.as_index(v) for v in (0, "0", 3, None, "", "x", " 2 ")], [0, 0, 3, -1, -1, -1, 2])
+
     def test_helpers(self):
         self.assertEqual(R.digits("Tiết 12a"), "12")
         self.assertEqual(R.normalize_text("  Bài 1:\nSố  học "), "bai 1: so hoc")
@@ -151,6 +153,10 @@ class KhdhJobTests(unittest.TestCase):
         self.assertEqual(done["last_success_ppct"], 11)
         self.assertEqual([c[0] for c in FakeBridge.last.calls].count("fill_minimal"), 2)
 
+    def test_first_add_button_index_zero(self):
+        run_job({"rows": [row(0)]})
+        self.assertIn(("click", 0), FakeBridge.last.calls)
+
     def test_popup_without_khdh_data_uses_full_fill(self):
         run_job({"rows": [row(0)], "popup_override": {"tiet_ppct": "", "noi_dung": ""}})
         self.assertIn(("fill_full", "Tiết 10"), FakeBridge.last.calls)
@@ -180,7 +186,7 @@ class KhdhJobTests(unittest.TestCase):
         params = {"resume_state": {"next_lop_idx": 0, "next_tuan_num": 1, "next_slot_idx": 0,
                                    "next_row_key": R.row_resume_key(rows[2]), "completed": 2}}
         _app, _e, done, statuses = run_job({"rows": rows}, params)
-        self.assertEqual([c for c in FakeBridge.last.calls if c[0] == "click"], [("click", 3)])
+        self.assertEqual([c for c in FakeBridge.last.calls if c[0] == "click"], [("click", 2)])
         self.assertEqual((statuses, done["completed"]), (["success"], 3))
 
     def test_user_stop(self):

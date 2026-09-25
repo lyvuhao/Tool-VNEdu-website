@@ -157,6 +157,12 @@ Hàm thuần (so popup với hàng đỏ, khoá resume, chọn dữ liệu đi�
 popup sai hàng, lưu mơ hồ, exception, người dùng dừng, chạy tiếp…) cho cùng chuỗi sự kiện và cùng chuỗi
 lệnh gọi trình duyệt. Test: `tests/test_khdh_worker.py`.
 
+**Sửa lỗi chỉ số 0:** bản cũ đọc chỉ số hàng/nút "+" bằng `int(x or -1)`, nên chỉ số 0 bị đổi thành -1 và
+nhánh dự phòng không bấm được nút "+" đầu tiên của tuần. Nay dùng `khdh_rows.as_index()` (giữ đúng 0).
+Fuzz lại: không có chỉ số 0 thì bản cũ/mới giống hệt; có chỉ số 0 thì khác biệt duy nhất là tham số
+`click_add_button` (-1 -> 0). Cùng lỗi ở Nhập điểm (`targetLeafIndex` = 0 làm lấy điểm nhanh rơi về quét
+chậm) cũng đã sửa trong `nhapdiem/ui/scorebook.py`.
+
 ### Lớp lớn = ghép từ nhiều mixin
 
 Các lớp khổng lồ trước đây (ví dụ `ChromeBridge` ~8.500 dòng, `AutoDaNangApp` ~10.200 dòng,
@@ -205,9 +211,6 @@ năng thì mở đúng file mixin: ví dụ lỗi điền form Sổ đầu bài 
   `fetch_sodaubai_rows(_bulk)` (~570 dòng mỗi hàm), `AutoDaNangApp._schedule_worker` (~640),
   `PlanExecutor._execute_week` (~740). `ChromeBridge.fill_form` và `_schedule_worker_khdh` đã được tách
   (xem bên dưới).
-- Worker KHDH: chỉ số hàng/nút "+" bằng 0 bị đổi thành -1 (`int(x or -1)`), nên khi bấm theo vị trí hàng
-  thất bại thì nhánh dự phòng không bấm được nút "+" đầu tiên của tuần. Đây là hành vi có sẵn, được giữ
-  nguyên khi tách.
 - `nhanxet/automation` và `nhapdiem/scorebook_core` vẫn là hai phiên bản khác nhau của 15 phương thức.
   Có thể hợp nhất nếu bản của Nhập điểm cũng đúng cho luồng Ghi nhận xét (cần test thực tế).
 - Code có vẻ làm dở mà pyflakes chỉ ra, được giữ nguyên để không đổi giao diện/hành vi:

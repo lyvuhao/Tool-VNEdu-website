@@ -32,6 +32,20 @@ def normalize_date_token(value):
     return f"{int(day):02d}/{int(month):02d}/{year}"
 
 
+def as_index(value, default=-1):
+    """Chỉ số nguyên; None / rỗng / không phải số -> `default`.
+
+    Khác `int(x or -1)` trước đây: giữ đúng chỉ số 0 (trước bị đổi thành -1, làm nút "+" đầu tiên
+    của tuần không bấm được ở nhánh dự phòng).
+    """
+    if value is None or str(value).strip() == "":
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def row_resume_key(row_info):
     """Khoá nhận diện một hàng đỏ KHDH để chạy tiếp (resume) đúng hàng, kể cả khi thứ tự hàng đổi."""
     parts = [
