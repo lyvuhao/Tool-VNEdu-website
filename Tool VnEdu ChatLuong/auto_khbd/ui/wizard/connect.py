@@ -5,11 +5,31 @@ from __future__ import annotations
 import queue
 from tkinter import messagebox
 
-from ..workers.login import LoginWorker
+from ..chrome_launcher import is_cdp_port_open
+from ..shared_account import load_account_config, save_account_config
+from ..workers.login import LoginWorker, VNEDU_KHDH_URL
 
 
 class ConnectMixin:
     """Kết nối Chrome và nạp dữ liệu khởi tạo."""
+
+    # -----------------------------------------------------------
+    # Tài khoản dùng chung với dashboard
+    # -----------------------------------------------------------
+
+    def _apply_shared_account(self) -> None:
+        """Điền sẵn tài khoản / cổng / URL mà dashboard (hoặc lần đăng nhập trước) để lại."""
+        config = load_account_config()
+        self._vnedu_url = str(config.get("target_url") or VNEDU_KHDH_URL)
+        if "debug_port" in config:
+            self.var_port.set(int(config["debug_port"]))
+        username = str(config.get("username", ""))
+        if username and not self.var_username.get().strip():
+            self.var_username.set(username)
+            self.var_summary.set(
+                f"Tài khoản {username} (từ dashboard/lần trước). Nếu Chrome đã đăng nhập VnEdu thì "
+                "bấm [Đăng nhập VnEdu] luôn, không cần mật khẩu."
+            )
 
     # -----------------------------------------------------------
     # Connect Chrome
@@ -19,16 +39,19 @@ class ConnectMixin:
         if self._guard_cdp_exclusive("Đăng nhập VnEdu"):
             return
 
-        # Validate tài khoản + mật khẩu
+        # Validate tài khoản + mật khẩu. Mật khẩu được bỏ trống khi Chrome đang chạy:
+        # nếu Chrome đã đăng nhập VnEdu (vd. từ dashboard) thì dùng lại phiên đó.
         username = self.var_username.get().strip()
         password = self.var_password.get().strip()
-        if not username:
+        port = int(self.var_port.get())
+        reuse_session = not password and is_cdp_port_open(port, timeout=0.5)
+        if not username and not reuse_session:
             messagebox.showwarning(
                 "Thiếu thông tin", "Hãy nhập Tài khoản VnEdu.", parent=self
             )
             self._entry_username.focus_set()
             return
-        if not password:
+        if not password and not reuse_session:
             messagebox.showwarning(
                 "Thiếu thông tin", "Hãy nhập Mật khẩu.", parent=self
             )
@@ -40,13 +63,16 @@ class ConnectMixin:
         self._bootstrap_worker = LoginWorker(
             username=username,
             password=password,
-            port=int(self.var_port.get()),
+            port=port,
             event_queue=self._bootstrap_queue,
+            url=getattr(self, "_vnedu_url", VNEDU_KHDH_URL),
         )
         self._bootstrap_worker.start()
         self.btn_connect.configure(state="disabled")
         self.var_connect_status.set("⏳ Đang đăng nhập…")
         self._log("━━ Đăng nhập VnEdu ━━", "info")
+        if reuse_session:
+            self._log("Không nhập mật khẩu — dùng phiên VnEdu đang mở trong Chrome.", "info")
         self._poll_bootstrap_queue()
 
     def _poll_bootstrap_queue(self):
@@ -89,6 +115,12 @@ class ConnectMixin:
                         f"Đã có {len(self.bootstrap_data.lop_options)} lớp.",
                         "ok",
                     )
+                    # Nhớ tài khoản/cổng/URL (không lưu mật khẩu) cho lần sau.
+                    save_account_config(
+                        self.var_username.get(),
+                        int(self.var_port.get()),
+                        getattr(self, "_vnedu_url", VNEDU_KHDH_URL),
+                    )
                     # (#4) Login thành công → xóa mật khẩu khỏi field + var.
                     # Defense-in-depth: không giữ plaintext trong UI sau khi
                     # đã submit. Tài khoản giữ lại cho lần đăng nhập lại.
@@ -104,6 +136,16 @@ class ConnectMixin:
                     try:
                         self._entry_password.delete(0, "end")
                         self._entry_password.focus_set()
+                    except Exception:
+                        pass
+                elif kind == "need_password":
+                    self.var_connect_status.set("🔑 Cần mật khẩu VnEdu")
+                    self._log(ev[1], "warn")
+                    try:
+                        if self.var_username.get().strip():
+                            self._entry_password.focus_set()
+                        else:
+                            self._entry_username.focus_set()
                     except Exception:
                         pass
                 elif kind == "error":

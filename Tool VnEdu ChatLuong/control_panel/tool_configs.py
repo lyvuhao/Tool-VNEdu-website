@@ -59,3 +59,12 @@ def sync_tool_configs(username: str, target_url: str, debug_port: int) -> None:
                 "debug_port": str(debug_port),
             },
         )
+        # KHDH (auto_khbd.ui.shared_account): điền sẵn tài khoản, dùng lại phiên Chrome đã đăng nhập.
+        write_json_if_changed(
+            workspace / "khdh_config.json",
+            {
+                "username": username,
+                "debug_port": str(debug_port),
+                "target_url": target_url,
+            },
+        )

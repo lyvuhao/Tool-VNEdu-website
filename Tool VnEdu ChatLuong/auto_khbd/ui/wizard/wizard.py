@@ -212,6 +212,7 @@ class KHDHWizard(
 
         self._tab_main = None  # Notebook khi tách lẻ/chẵn
 
+        self._apply_shared_account()
         self._build_ui()
         self._refresh_grid()
         self._refresh_ppct_table()

@@ -76,6 +76,12 @@ file CSV thì không cần.
   chạy tool.
 - Dashboard có thêm thẻ **Kế hoạch dạy học** (chạy `auto_khbd_pro.py`, kèm bản nhúng dự phòng đơn file).
   Cửa sổ dashboard tự cao thêm để thấy đủ thẻ mặc định mà không phải cuộn.
+- KHDH **nhận tài khoản từ dashboard**:
+  - Dashboard ghi `khdh_config.json` (tài khoản, cổng Chrome, URL trường — **không có mật khẩu**).
+  - KHDH điền sẵn tài khoản và dùng đúng cổng/URL đó.
+  - Nếu Chrome đã đăng nhập VNEDU (từ dashboard) thì bấm **Đăng nhập VnEdu** luôn, không cần gõ mật khẩu.
+  - Nếu phiên chưa đăng nhập hoặc đã hết hạn, KHDH báo "Cần mật khẩu" (không gửi form rỗng).
+  - Đăng nhập thành công thì KHDH nhớ tài khoản cho lần sau (vẫn không lưu mật khẩu).
 - Bản nhúng dự phòng được nén ổn định (cùng nội dung → cùng chuỗi), nên cập nhật bản nhúng không tạo thay
   đổi thừa trong git.
 
@@ -166,5 +172,3 @@ năng thì mở đúng file mixin: ví dụ lỗi điền form Sổ đầu bài 
   - `detail_text` được tính nhưng không hiển thị (`control_panel/ui/tool_dialogs.py`);
   - `expected_score_pairs` (`nhapdiem/scorebook_core/automation/payload_write.py`).
 - "Lọc học lực" (`locdiem.py`) không có trong repo nên dashboard vẫn chạy bản nhúng của nó.
-- Thẻ KHDH chưa nhận tài khoản từ dashboard: KHDH tự kết nối Chrome đang mở (cổng 9224), nên nếu đã đăng
-  nhập VNEDU từ dashboard thì dùng lại được phiên đó.

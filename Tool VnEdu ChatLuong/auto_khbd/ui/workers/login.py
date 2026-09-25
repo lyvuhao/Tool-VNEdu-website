@@ -84,15 +84,20 @@ class LoginWorker(threading.Thread):
         ("done", BootstrapData)
         ("error", message)
         ("login_failed", message)   — sai tk/mk hoặc captcha
+        ("need_password", message)  — Chrome chưa đăng nhập mà chưa nhập mật khẩu
+
+    `password` có thể rỗng: khi Chrome đã đăng nhập VnEdu (vd. từ dashboard) thì không cần
+    điền form đăng nhập. `url`: trang VnEdu của trường (mặc định VNEDU_KHDH_URL).
     """
 
     def __init__(self, username: str, password: str, port: int,
-                 event_queue: queue.Queue):
+                 event_queue: queue.Queue, url: str | None = None):
         super().__init__(daemon=True, name="KHDH-Login")
         self.username = username
         self.password = password
         self.port = port
         self.q = event_queue
+        self.url = url or VNEDU_KHDH_URL
 
     def run(self):
         """Xử lý thông minh theo trạng thái hiện tại của Chrome/VnEdu.
@@ -119,7 +124,7 @@ class LoginWorker(threading.Thread):
                         "Hãy cài Google Chrome rồi thử lại."))
                     return
                 ok = launch_chrome_with_debug(
-                    self.port, url=VNEDU_KHDH_URL, chrome_path=chrome_path
+                    self.port, url=self.url, chrome_path=chrome_path
                 )
                 if not ok:
                     self.q.put(("error", "Không khởi động được Chrome."))
@@ -219,7 +224,7 @@ class LoginWorker(threading.Thread):
                 # ── Case E/F: Trang khác hoặc tab mới → navigate + login ─
                 self.q.put(("status", "Đang mở trang VnEdu…"))
                 try:
-                    page.goto(VNEDU_KHDH_URL, timeout=20000,
+                    page.goto(self.url, timeout=20000,
                              wait_until="domcontentloaded")
                 except Exception:
                     pass
@@ -356,6 +361,12 @@ class LoginWorker(threading.Thread):
 
     def _do_login(self, page) -> bool:
         """Fill form login VnEdu. Returns True nếu submit thành công."""
+        if not self.username or not self.password:
+            # Không gửi form rỗng (tránh bị tính là đăng nhập sai) -> nhờ người dùng nhập.
+            self.q.put(("need_password",
+                "Chrome chưa đăng nhập VnEdu (hoặc phiên đã hết hạn).\n"
+                "Hãy nhập tài khoản và mật khẩu rồi bấm [Đăng nhập VnEdu]."))
+            return False
         try:
             # Đợi form login xuất hiện
             page.wait_for_selector(
