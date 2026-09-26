@@ -136,6 +136,28 @@ tìm field/record, chờ store, set combobox / ô thường, luồng chính. Chu
 cũ. `tests/test_fill_form.py` chạy `fill_form` trên trang ExtJS giả (`tests/fixtures/fake_extjs.js`)
 bằng Chromium; đặt `VNEDU_TEST_CHROMIUM=<đường dẫn chrome>` nếu Playwright chưa cài trình duyệt.
 
+### `fetch_sodaubai_rows(_bulk)` (Sổ đầu bài) — lấy bảng tuần qua service
+
+Hai hàm trước đây mỗi hàm chứa ~500 dòng JavaScript, trong đó ~340 dòng (hàm tiện ích + parse bảng) chép
+giống hệt nhau. Nay JS nằm ở `auto_sdb/cdp/sodaubai_fetch_js.py`, ghép từ các phần dùng chung:
+
+```
+JS_SDB_HELPERS        normalize / getCombo / getStoreItems / getRecordValue / textOf
+JS_SDB_PARSE_TABLE    parseRowsFromTable(doc): HTML -> hàng (thứ, buổi, tiết, PPCT, có dữ liệu / gợi ý / trống…)
+JS_SDB_RESOLVE_CLASS  resolveSdbClass(args, opts): class_id, khối, cấp (từ class_meta hoặc store combobox Lớp)
+JS_SDB_SESSION        readSdbSession() / buildSdbParams() / parseWeekValue()
+
+JS_FETCH_SODAUBAI_WEEK   một tuần   -> fetch_sodaubai_rows
+JS_FETCH_SODAUBAI_BULK   nhiều tuần -> fetch_sodaubai_rows_bulk (song song, báo lỗi nếu service trả sai tuần)
+```
+
+Khác biệt nhỏ vốn có giữa hai bản được giữ qua `opts` của `resolveSdbClass`: tên lớp đọc từ store (bản một tuần
+có trim), cấp học khi không có combobox Cấp (một tuần gửi rỗng, nhiều tuần gửi 2), câu báo thiếu class_id.
+`sodaubai_fetch.py` còn ~115 dòng Python. Đã so sánh bản cũ/mới trên Chromium với trang VnEdu giả và HTML sổ
+đầu bài sinh ngẫu nhiên: 600 kịch bản (~15.000 hàng, đủ các lỗi: không có Ext, không thấy lớp, thiếu class_id,
+HTTP 500, lỗi mạng, không có bảng, tuần lệch) cho kết quả và request gửi đi giống hệt.
+Test: `tests/test_sodaubai_fetch.py`.
+
 ### Worker nhập Sổ đầu bài theo KHDH (`_schedule_worker_khdh`)
 
 `auto_sdb/app/schedule_worker_khdh.py`: lớp `KhdhScheduleJob` giữ trạng thái một lần chạy (bộ đếm,
@@ -235,8 +257,8 @@ năng thì mở đúng file mixin: ví dụ lỗi điền form Sổ đầu bài 
 ## Còn để ngỏ (nên xem thêm)
 
 - Một số phương thức rất dài vẫn là một khối, vì tách tiếp cần viết lại logic và phải test trên web thật:
-  `fetch_sodaubai_rows(_bulk)` (~570 dòng mỗi hàm), `PlanExecutor._execute_week` (~740).
-  `ChromeBridge.fill_form`, `_schedule_worker_khdh` và `_schedule_worker` đã được tách (xem ở trên).
+  `PlanExecutor._execute_week` (~740). `ChromeBridge.fill_form`, `fetch_sodaubai_rows(_bulk)`,
+  `_schedule_worker_khdh` và `_schedule_worker` đã được tách (xem ở trên).
 - `nhanxet/automation` và `nhapdiem/scorebook_core` vẫn là hai phiên bản khác nhau của 15 phương thức.
   Có thể hợp nhất nếu bản của Nhập điểm cũng đúng cho luồng Ghi nhận xét (cần test thực tế).
 - Code có vẻ làm dở mà pyflakes chỉ ra, được giữ nguyên để không đổi giao diện/hành vi:
