@@ -371,3 +371,17 @@ _JS_READ_FIELDS = r"""
     return out;
 }
 """
+
+
+# Sau khi phải tự append option Phân môn vào DOM: gọi Ext.getCmp().setValue() để data binding của
+# ExtJS nhận giá trị mới. (Trước đây viết thẳng trong `_execute_week`.)
+_JS_EXT_SET_PHAN_MON_VALUE = """({rk, pm_id}) => {
+                                    try {
+                                        const cmp = Ext.getCmp('cboPhanMon_' + rk);
+                                        if (cmp && typeof cmp.setValue === 'function') {
+                                            cmp.setValue(pm_id);
+                                            return true;
+                                        }
+                                    } catch(e) {}
+                                    return false;
+                                }"""

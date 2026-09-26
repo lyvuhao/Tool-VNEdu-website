@@ -9,5 +9,6 @@ Mục lục module:
     models           Sự kiện và báo cáo của PlanExecutor.
     resume           Xác minh sau khi lưu và lưu điểm resume.
     week_execution   Thực thi một tuần KHDH.
+    week_fill        Điền các ô của một tuần KHDH lên DOM — gọi từ `_execute_week` (week_execution.py).
     week_navigation  Chuyển tuần có xác minh và quét chênh lệch.
 """
