@@ -18,6 +18,7 @@ from .dom_write import DomWriteMixin
 from .models import ExecutorEvent, ExecutorReport
 from .resume import ResumeMixin
 from .week_execution import WeekExecutionMixin
+from .week_fill import WeekFillMixin
 from .week_navigation import WeekNavigationMixin
 
 if TYPE_CHECKING:  # chỉ dùng cho chú thích kiểu
@@ -28,6 +29,7 @@ class PlanExecutor(
     WeekNavigationMixin,
     DomWriteMixin,
     WeekExecutionMixin,
+    WeekFillMixin,
     ResumeMixin,
 ):
     """Thực thi PlanReport trên trang web qua KHDHClient.

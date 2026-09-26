@@ -136,6 +136,30 @@ tìm field/record, chờ store, set combobox / ô thường, luồng chính. Chu
 cũ. `tests/test_fill_form.py` chạy `fill_form` trên trang ExtJS giả (`tests/fixtures/fake_extjs.js`)
 bằng Chromium; đặt `VNEDU_TEST_CHROMIUM=<đường dẫn chrome>` nếu Playwright chưa cài trình duyệt.
 
+### `PlanExecutor._execute_week` (KHDH) — thực thi một tuần
+
+Hàm ~740 dòng nay là các bước nhỏ; trạng thái một tuần nằm trong `_WeekRun` (kế hoạch, kết quả, ô đang điền,
+ô đã lỗi). `auto_khbd/engine/executor/week_execution.py` điều phối:
+
+```
+_execute_week()
+  _switch_week_for_run()        đổi tuần + xác minh đúng tuần (sai -> dừng tuần, không ghi)
+  _enable_edit_mode_for_run()   bật chế độ "Sửa" + reload bảng
+  _scan_and_diff_for_run()      so với web: đủ cả tuần -> bỏ qua; thiếu một phần -> chỉ điền ô thiếu;
+                                tiết dạy bù -> shift PPCT các tuần sau (_report_extra_lessons)
+  _stop_before_pre_action() / _run_pre_action()      gen từ tuần trước / theo TKB
+  _fill_week_ops()              (week_fill.py) Phase A lớp -> B môn -> B2 phân môn -> C tên bài ->
+                                D PPCT/tên bài/ghi chú (+ fallback dấu cách) -> D2 xác nhận lại trước Lưu
+  _save_week_for_run()          kiểm tra tuần lần cuối, dừng nếu người dùng bấm Dừng, _click_save_week(),
+                                _verify_saved_week() đọc lại web
+  _commit_week_fallback_log()   ghi / hoàn tác fallback log theo kết quả lưu
+```
+
+Đoạn JS set phân môn qua `Ext.getCmp()` trước đây viết thẳng trong hàm, nay là `_JS_EXT_SET_PHAN_MON_VALUE`
+trong `js.py`. Fuzz so sánh với bản gốc bằng executor/trình duyệt giả: 2.400 kịch bản cho cùng chuỗi sự kiện,
+cùng lệnh gọi (kể cả tham số từng lệnh JS), cùng kết quả tuần và cùng trạng thái ô / fallback log.
+Test: `tests/test_execute_week.py`.
+
 ### `fetch_sodaubai_rows(_bulk)` (Sổ đầu bài) — lấy bảng tuần qua service
 
 Hai hàm trước đây mỗi hàm chứa ~500 dòng JavaScript, trong đó ~340 dòng (hàm tiện ích + parse bảng) chép
@@ -256,9 +280,9 @@ năng thì mở đúng file mixin: ví dụ lỗi điền form Sổ đầu bài 
 
 ## Còn để ngỏ (nên xem thêm)
 
-- Một số phương thức rất dài vẫn là một khối, vì tách tiếp cần viết lại logic và phải test trên web thật:
-  `PlanExecutor._execute_week` (~740). `ChromeBridge.fill_form`, `fetch_sodaubai_rows(_bulk)`,
-  `_schedule_worker_khdh` và `_schedule_worker` đã được tách (xem ở trên).
+- Các phương thức rất dài trước đây (`ChromeBridge.fill_form`, `fetch_sodaubai_rows(_bulk)`,
+  `_schedule_worker_khdh`, `_schedule_worker`, `PlanExecutor._execute_week`) đều đã được tách (xem ở trên);
+  mỗi lần tách được kiểm chứng bằng so sánh bản cũ/mới, nhưng chưa chạy thử trên web thật.
 - `nhanxet/automation` và `nhapdiem/scorebook_core` vẫn là hai phiên bản khác nhau của 15 phương thức.
   Có thể hợp nhất nếu bản của Nhập điểm cũng đúng cho luồng Ghi nhận xét (cần test thực tế).
 - Code có vẻ làm dở mà pyflakes chỉ ra, được giữ nguyên để không đổi giao diện/hành vi:
